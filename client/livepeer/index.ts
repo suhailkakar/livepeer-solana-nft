@@ -1,7 +1,9 @@
 import { createReactClient, studioProvider } from "@livepeer/react";
 
 const client = createReactClient({
-  provider: studioProvider({ apiKey: "56d2c06e-1128-4121-80ee-9f8bb72b78d7" }),
+  provider: studioProvider({
+    apiKey: process.env.NEXT_PUBLIC_LIVEPEER_STUDIO_API_KEY,
+  }),
 });
 
 export default client;
