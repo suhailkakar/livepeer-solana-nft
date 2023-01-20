@@ -1,12 +1,17 @@
 // @ts-nocheck
 
-import React, { useState, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import Button from "../shared/Button";
 import Input from "../shared/Input";
 import toast from "react-hot-toast";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WebBundlr } from "@bundlr-network/client";
-import { useProgram, useMintNFT } from "@thirdweb-dev/react/solana";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
 import BigNumber from "bignumber.js";
 import FundModal from "../FundModal";
@@ -14,49 +19,43 @@ import fileReaderStream from "filereader-stream";
 import Success from "../Success";
 import axios from "axios";
 import { useReward } from "react-rewards";
+import Image from "next/image";
+import MintFromTx from "../MintFromTx";
+import Steps from "../Steps";
+
+const bundlerHttpAddress = "https://node1.bundlr.network";
+const currency = "solana";
 
 export default function Hero() {
+  // Inputs
   const [name, setName] = useState<string | undefined>(undefined);
   const [description, setDescription] = useState<string | undefined>(undefined);
   const [file, setFile] = useState<File | undefined>(undefined);
-  const { publicKey } = useWallet();
-  const { program } = useProgram(
-    "GAjMpbjrAfm8uPNwQs5HfCWECCgi7ZGXnt4UhidVRkUm",
-    "nft-collection"
-  ) as any;
+
+  // Bundlr
   const [bundlr, setBundlr] = useState<WebBundlr | undefined>(undefined);
-  const [price, setPrice] = useState<string | undefined>(undefined);
-  const [showFundWallet, setShowFundWallet] = useState(false);
   const [stream, setStream] = React.useState<ReadableStream>();
-  const { mutateAsync: mintNFT } = useMintNFT(program);
+  const [price, setPrice] = useState<string | undefined>(undefined);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [fileSize, setFileSize] = useState<number>(0);
+  const totalChunks = useRef(0);
+
+  // Modals
+  const [showFundWallet, setShowFundWallet] = useState<boolean>(false);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [showTxModal, setShowTxModal] = useState<boolean>(false);
+
+  // Misc
+  const { publicKey } = useWallet();
   const [arweaveId, setArweaveId] = useState<string | undefined>(undefined);
   const { reward, isAnimating } = useReward("rewardId", "confetti");
-  const { reward: reward2, isAnimating: isAnimating2 } = useReward(
-    "rewardId2",
-    "confetti"
-  );
-  const { reward: reward3, isAnimating: isAnimating3 } = useReward(
-    "rewardId3",
-    "confetti"
-  );
-  const { reward: reward4, isAnimating: isAnimating4 } = useReward(
-    "rewardId4",
-    "confetti"
-  );
-  const { reward: reward5, isAnimating: isAnimating5 } = useReward(
-    "rewardId5",
-    "confetti"
-  );
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const rewardRef = useRef();
-  const bundlerHttpAddress = "https://node1.bundlr.network";
-  const currency = "solana";
+  const [loading, setLoading] = useState<boolean>(false);
 
+  // Refs
+  const rewardRef = useRef();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleMint = async () => {
-    // setLoading(true);
     if (!publicKey) {
       toast("Please connect your wallet to continue", {
         icon: "🔒",
@@ -84,6 +83,8 @@ export default function Hero() {
       alert("File size is over 10GB");
       return;
     } else {
+      setLoading(true);
+
       const shouldFund = await hasEnoughBalance();
       console.log(shouldFund);
       if (shouldFund.status) {
@@ -93,6 +94,13 @@ export default function Hero() {
         uploadVideo();
       }
     }
+  };
+
+  const handleMintFromTx = async (tx: string) => {
+    setLoading(true);
+    setArweaveId(tx);
+    mint(tx);
+    setShowTxModal(false);
   };
 
   function roundUp(num) {
@@ -165,7 +173,7 @@ export default function Hero() {
   };
 
   const mint = async (id: string) => {
-    toast("Minting NFT, please approve the transaction", {
+    toast("Minting NFT, please wait", {
       icon: "🔥",
       style: {
         borderRadius: "10px",
@@ -173,25 +181,32 @@ export default function Hero() {
         color: "#fff",
       },
     });
-    mintNFT?.({
-      metadata: {
-        name,
-        description,
-        image: `https://arweave.net/${id}`,
-        animation_url: `https://arweave.net/${id}`,
-        external_url: `https://lvpr.tv/?muted=0&v=${id}`,
-        properties: {
-          video: `ar://${id}`,
+    const res = await fetch("/api/mint", {
+      method: "POST",
+      body: JSON.stringify({
+        address: publicKey?.toBase58(),
+        metadata: {
+          name: name || "Untitled",
+          description: description || "No description",
+          image: `https://arweave.net/${id}`,
+          animation_url: `https://arweave.net/${id}`,
+          external_url: `https://lvpr.tv/?muted=0&v=${id}`,
+          properties: {
+            video: `ar://${id}`,
+          },
         },
-      },
-    }).then(async (e) => {
+      }),
+    });
+    const data = await res.json();
+
+    if (data.nft) {
       const { data } = await axios.get(`https://arweave.net/${id}`);
       if (data) {
         setLoading(false);
         rewardRef.current?.click();
         setShowSuccessModal(true);
       }
-    });
+    }
   };
 
   const uploadVideo = async () => {
@@ -205,13 +220,63 @@ export default function Hero() {
         },
       });
 
+      const uploader = bundlr.uploader.chunkedUploader;
+      // Change the batch size to 1 to make testing easier (default is 5)
+      uploader.setBatchSize(1);
+      // Change the chunk size to something small to make testing easier (default is 25MB)
+      const chunkSize = 2000000;
+      uploader.setChunkSize(chunkSize);
+      // get a create a streamed reader
       const dataStream = fileReaderStream(file);
-      const tx = await bundlr?.uploader?.upload(dataStream, {
+      // save a reference to the file size
+      setFileSize(dataStream.size);
+      // divide the total file size by the size of each chunk we'll upload
+      if (dataStream.size < chunkSize) totalChunks.current = 1;
+      else {
+        totalChunks.current = Math.floor(dataStream.size / chunkSize);
+      }
+      /** Register Event Callbacks */
+      // event callback: called for every chunk uploaded
+      uploader.on("chunkUpload", (chunkInfo) => {
+        console.log(chunkInfo);
+        console.log(
+          `Uploaded Chunk number ${chunkInfo.id}, offset of ${chunkInfo.offset}, size ${chunkInfo.size} Bytes, with a total of ${chunkInfo.totalUploaded} bytes uploaded.`
+        );
+        const chunkNumber = chunkInfo.id + 1;
+        // update the progress bar based on how much has been uploaded
+        if (chunkNumber >= totalChunks) setUploadProgress(100);
+        else setUploadProgress((chunkNumber / totalChunks.current) * 100);
+      });
+      // event callback: called if an error happens
+      uploader.on("chunkError", (e) => {
+        console.error(
+          `Error uploading chunk number ${e.id} - ${e.res.statusText}`
+        );
+      });
+      // event callback: called when file is fully uploaded
+      uploader.on("done", (finishRes) => {
+        console.log(`Upload completed with ID ${finishRes.id}`);
+        // set the progress bar to 100
+        setUploadProgress(100);
+      });
+
+      const tx = await uploader.uploadData(dataStream, {
         tags: [{ name: "Content-Type", value: file?.type }],
       });
+
       if (tx?.data?.id) {
-        console.log("tx", tx.data.id);
         setArweaveId(tx.data?.id);
+
+        toast(`Tx: ${tx?.data?.id} `, {
+          icon: "📝",
+          style: {
+            borderRadius: "10px",
+            background: "#333",
+            width: "35rem",
+            maxWidth: "100%",
+            color: "#fff",
+          },
+        });
         mint(tx.data.id);
       }
     }
@@ -263,10 +328,13 @@ export default function Hero() {
 
   return (
     <section className="p-10 h-screen flex flex-col lg:flex-row">
-      <div className="w-full h-1/2  lg:h-full lg:w-1/2">
-        <img
+      <div className="w-full h-1/2 lg:h-full lg:w-1/2">
+        <Image
           src="/hero.png"
           className=" w-full h-full  lg:h-full object-cover rounded-xl object-bottom"
+          width={1000}
+          height={1000}
+          alt="Hero Illustration"
         />
       </div>
       <div className="lg:w-1/2 w-full h-full lg:ml-20">
@@ -297,9 +365,9 @@ export default function Hero() {
           <div className="h-4" />
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="w-full border border-dashed border-gray-500 rounded-xl p-4 flex items-center justify-center"
+            className="w-full border border-dashed border-gray-500 text-gray-500 rounded-xl p-4 flex items-center justify-center hover:border-gray-200 hover:text-gray-200"
           >
-            <p className="text-gray-500">
+            <p className="">
               {file ? (
                 file.name +
                 " - " +
@@ -323,10 +391,6 @@ export default function Hero() {
           ref={rewardRef}
           onClick={() => {
             reward();
-            reward2();
-            reward3();
-            reward4();
-            reward5();
           }}
         >
           <span id="rewardId" />
@@ -336,11 +400,32 @@ export default function Hero() {
           <span id="rewardId5" />
         </button>
         <div className="flex flex-row items-center mb-20 lg:mb-0">
-          <Button onClick={handleMint} disable={!name || !description || !file}>
-            {loading ? "Minting..." : "Mint NFT"}
+          <Button
+            onClick={handleMint}
+            disable={!name || !description || !file || loading}
+          >
+            {loading
+              ? `Minting... ${
+                  uploadProgress
+                    ? ~~uploadProgress > 100
+                      ? 100 + "%"
+                      : ~~uploadProgress + "%"
+                    : ""
+                }`
+              : "Mint NFT"}
           </Button>
-          <p className="self-center ml-4 text-gray-500 mt-5 capitalize"></p>
+          <Button
+            className="bg-[#222222] text-gray-300 ml-4"
+            onClick={() => setShowTxModal(true)}
+          >
+            Mint from TX
+          </Button>
         </div>
+        <Steps
+          publickey={publicKey?.toBase58()}
+          arweaveId={arweaveId}
+          completed={showSuccessModal}
+        />
       </div>
       {showFundWallet && (
         <FundModal
@@ -351,6 +436,12 @@ export default function Hero() {
         />
       )}
       {showSuccessModal && <Success name={name} arweaveId={arweaveId} />}
+      {showTxModal && (
+        <MintFromTx
+          closeModal={() => setShowTxModal(false)}
+          onSubmit={handleMintFromTx}
+        />
+      )}
     </section>
   );
 }

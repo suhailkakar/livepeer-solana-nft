@@ -26,18 +26,14 @@ function MyApp({ Component, pageProps }: AppProps) {
   const wallets = useMemo(() => [new PhantomWalletAdapter()], [network]);
 
   return (
-    <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>
-          <ThirdwebProvider network={network}>
-            <LivepeerConfig client={client}>
-              <Component {...pageProps} />
-              <Toaster />
-            </LivepeerConfig>
-          </ThirdwebProvider>
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
+    <ThirdwebProvider network={network}>
+      <WalletModalProvider>
+        <LivepeerConfig client={client}>
+          <Component {...pageProps} />
+          <Toaster />
+        </LivepeerConfig>
+      </WalletModalProvider>
+    </ThirdwebProvider>
   );
 }
 

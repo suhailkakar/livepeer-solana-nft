@@ -1,7 +1,14 @@
 import React from "react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+
 import Link from "next/link";
 import { AiFillGithub } from "react-icons/ai";
+import dynamic from "next/dynamic";
+
+const WalletMultiButtonDynamic = dynamic(
+  async () =>
+    (await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
+  { ssr: false }
+);
 
 export default function Navbar() {
   return (
@@ -10,14 +17,11 @@ export default function Navbar() {
         <AiFillGithub size={30} color={"#00FFB2"} className="mr-4" />
       </Link>
 
-      <WalletMultiButton
+      <WalletMultiButtonDynamic
         style={{
-          background: "#00FFB2",
-          color: "#000",
-          borderRadius: "10px",
-          padding: "10px 13px",
-          fontSize: "16px",
-          fontWeight: "500",
+          backgroundColor: "#00FFB2",
+          color: "#222222",
+          borderRadius: "0.7rem",
         }}
       />
     </div>

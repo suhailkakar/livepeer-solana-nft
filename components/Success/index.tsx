@@ -11,7 +11,7 @@ export default function Success({
 }) {
   return (
     <Modal>
-      <p className="text-2xl font-bold text-white mt-6">Yay!, you did it</p>
+      <p className="text-2xl font-bold text-white mt-6">Yay! you did it</p>
       <p className="text-gray-500 mt-3 mb-3">
         You have successfully minted your video NFT
         <br />
