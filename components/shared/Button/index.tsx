@@ -5,19 +5,22 @@ export default function Button({
   disable,
   onClick,
   className,
+  secondary,
 }: {
   children: React.ReactNode;
   disable?: boolean;
   onClick?: () => void;
   className?: string;
+  secondary?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       className={
-        className +
-        "  rounded-xl  text-sm font-medium p-3 mt-6 w-32 hover:cursor-pointer bg-primary " +
-        (disable ? " opacity-50 cursor-not-allowed" : "")
+        secondary
+          ? "  rounded-xl  text-sm font-medium p-3 mt-6 w-32 hover:cursor-pointer bg-[#222] text-gray-300 ml-4 mr-4  "
+          : "  rounded-xl  text-sm font-medium p-3 mt-6 w-32 hover:cursor-pointer bg-primary " +
+            (disable ? " opacity-50 cursor-not-allowed" : "")
       }
     >
       {children}

@@ -34,10 +34,7 @@ export default function MintFromTx({
           placeholder={"Enter the arweave tx"}
         />
         <div className="flex flex-row  justify-end">
-          <Button
-            onClick={closeModal}
-            className=" bg-[#202020] text-gray-300  "
-          >
+          <Button onClick={closeModal} secondary>
             Cancel
           </Button>
           <Button

@@ -414,10 +414,7 @@ export default function Hero() {
                 }`
               : "Mint NFT"}
           </Button>
-          <Button
-            className="bg-[#222222] text-gray-300 ml-4"
-            onClick={() => setShowTxModal(true)}
-          >
+          <Button secondary onClick={() => setShowTxModal(true)}>
             Mint from TX
           </Button>
         </div>
