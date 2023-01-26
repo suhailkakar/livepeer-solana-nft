@@ -7,11 +7,13 @@ export default function FundModal({
   onClose,
   file,
   price,
+  fundLoading,
 }: {
   onFund: () => void;
   onClose: () => void;
   file: File;
   price: string | undefined;
+  fundLoading: boolean;
 }) {
   return (
     <Modal sm>
@@ -33,7 +35,9 @@ export default function FundModal({
         SOL
       </p>
       <div className="flex flex-row items-center">
-        <Button onClick={onFund}>Upload to Bundlr</Button>
+        <Button disable={fundLoading} onClick={onFund}>
+          {fundLoading ? "Loading..." : "Upload to Bundlr"}
+        </Button>
       </div>
     </Modal>
   );
