@@ -415,10 +415,12 @@ export default function Hero() {
           >
             {loading
               ? `Minting... ${
-                  uploadProgress
-                    ? ~~uploadProgress > 100
-                      ? 100 + "%"
-                      : ~~uploadProgress + "%"
+                  !arweaveId
+                    ? uploadProgress
+                      ? ~~uploadProgress > 100
+                        ? 100 + "%"
+                        : ~~uploadProgress + "%"
+                      : ""
                     : ""
                 }`
               : "Mint NFT"}
