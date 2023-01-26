@@ -22,6 +22,7 @@ import { useReward } from "react-rewards";
 import Image from "next/image";
 import MintFromTx from "../MintFromTx";
 import Steps from "../Steps";
+import { useProgram } from "@thirdweb-dev/react/solana";
 
 const bundlerHttpAddress = "https://node1.bundlr.network";
 const currency = "solana";
@@ -39,6 +40,12 @@ export default function Hero() {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [fileSize, setFileSize] = useState<number>(0);
   const totalChunks = useRef(0);
+
+  // thirdweb
+  const { program } = useProgram(
+    "GAjMpbjrAfm8uPNwQs5HfCWECCgi7ZGXnt4UhidVRkUm",
+    "nft-collection"
+  );
 
   // Modals
   const [showFundWallet, setShowFundWallet] = useState<boolean>(false);
@@ -126,14 +133,7 @@ export default function Hero() {
         .fund(value)
         .then((res) => {
           setShowFundWallet(false);
-          toast("Wallet funded successfully", {
-            icon: "🎉",
-            style: {
-              borderRadius: "10px",
-              background: "#333",
-              color: "#fff",
-            },
-          });
+
           uploadVideo();
         })
         .catch((e) => {
@@ -173,7 +173,7 @@ export default function Hero() {
   };
 
   const mint = async (id: string) => {
-    toast("Minting NFT, please wait", {
+    toast("Preparing to Mint", {
       icon: "🔥",
       style: {
         borderRadius: "10px",
@@ -181,25 +181,31 @@ export default function Hero() {
         color: "#fff",
       },
     });
-    const res = await fetch("/api/mint", {
-      method: "POST",
-      body: JSON.stringify({
-        address: publicKey?.toBase58(),
-        metadata: {
-          name: name || "Untitled",
-          description: description || "No description",
-          image: `https://arweave.net/${id}`,
-          animation_url: `https://arweave.net/${id}`,
-          external_url: `https://lvpr.tv/?muted=0&v=${id}`,
-          properties: {
-            video: `ar://${id}`,
-          },
-        },
-      }),
-    });
-    const data = await res.json();
+    const metadata = {
+      name: name || "Untitled",
+      description: description || "No description",
+      image: `https://arweave.net/${id}`,
+      animation_url: `https://arweave.net/${id}`,
+      external_url: `https://lvpr.tv/?muted=0&v=${id}`,
+      properties: {
+        video: `ar://${id}`,
+      },
+    };
 
-    if (data.nft) {
+    const tx = await program.mint(metadata);
+
+    // EAFcmi2yF83YFGGp15EoaXAxmVAEHsYsV8j3D74qAVHa
+
+    toast("Minting NFT", {
+      icon: "🔥",
+      style: {
+        borderRadius: "10px",
+        background: "#333",
+        color: "#fff",
+      },
+    });
+
+    if (tx) {
       const { data } = await axios.get(`https://arweave.net/${id}`);
       if (data) {
         setLoading(false);
@@ -211,7 +217,7 @@ export default function Hero() {
 
   const uploadVideo = async () => {
     if (stream) {
-      toast("Uploading video, please wait", {
+      toast("Uploading to Bundlr", {
         icon: "⏳",
         style: {
           borderRadius: "10px",
@@ -414,7 +420,11 @@ export default function Hero() {
                 }`
               : "Mint NFT"}
           </Button>
-          <Button secondary onClick={() => setShowTxModal(true)}>
+          <Button
+            disable={loading}
+            secondary
+            onClick={() => setShowTxModal(true)}
+          >
             Mint from TX
           </Button>
         </div>

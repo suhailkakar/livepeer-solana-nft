@@ -16,7 +16,7 @@ export default function FundModal({
   return (
     <Modal sm>
       {renderIcon}
-      <p className="text-2xl font-bold text-white mt-6">Fund your wallet</p>
+      <p className="text-2xl font-bold text-white mt-6">Upload to Bundlr</p>
       <p className="text-gray-500 mt-3">
         To mint an NFT, you need to fund your Bundlr wallet with SOL. <br />
         <br />
@@ -33,7 +33,7 @@ export default function FundModal({
         SOL
       </p>
       <div className="flex flex-row items-center">
-        <Button onClick={onFund}>Fund wallet</Button>
+        <Button onClick={onFund}>Upload to Bundlr</Button>
       </div>
     </Modal>
   );

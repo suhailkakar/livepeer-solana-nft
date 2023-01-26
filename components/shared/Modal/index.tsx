@@ -14,7 +14,7 @@ export default function Modal({
           sm ? "bg-[#171717] rounded-xl w-96" : "bg-[#171717] rounded-xl"
         }
       >
-        <div className="flex flex-col items-center justify-center h-full p-4">
+        <div className="flex flex-col items-center justify-center h-full p-4  max-w-[500px]">
           {children}
         </div>
       </div>
