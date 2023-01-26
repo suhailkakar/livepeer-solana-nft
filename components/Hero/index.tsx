@@ -39,7 +39,7 @@ export default function Hero() {
   const [price, setPrice] = useState<string | undefined>(undefined);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [fileSize, setFileSize] = useState<number>(0);
-  const [setFundLoading, setSetFundLoading] = useState<boolean>(false);
+  const [FundLoading, setFundLoading] = useState<boolean>(false);
   const totalChunks = useRef(0);
 
   // thirdweb
@@ -128,18 +128,18 @@ export default function Hero() {
 
   const fundWallet = async () => {
     if (bundlr && price) {
-      setSetFundLoading(true);
+      setFundLoading(true);
       const value = parseInput(price);
       if (!value) return;
       await bundlr
         .fund(value)
         .then((res) => {
-          setSetFundLoading(false);
+          setFundLoading(false);
           setShowFundWallet(false);
           uploadVideo();
         })
         .catch((e) => {
-          setSetFundLoading(false);
+          setFundLoading(false);
           console.log(e);
         });
     }
@@ -442,7 +442,7 @@ export default function Hero() {
           onFund={fundWallet}
           file={file}
           price={price}
-          fundLoading={fundLoading}
+          fundLoading={FundLoading}
           onClose={() => setShowFundWallet(false)}
         />
       )}
