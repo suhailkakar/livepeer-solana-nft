@@ -1,6 +1,4 @@
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
-import { ThirdwebProvider } from "@thirdweb-dev/react/solana";
-import { Network } from "@thirdweb-dev/sdk/solana";
 import { useMemo } from "react";
 import type { AppProps } from "next/app";
 import "../styles/globals.css";
@@ -14,26 +12,27 @@ import {
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
 
-import { clusterApiUrl } from "@solana/web3.js";
-
 require("@solana/wallet-adapter-react-ui/styles.css");
 
 function MyApp({ Component, pageProps }: AppProps) {
   const network = WalletAdapterNetwork.Mainnet;
 
-  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+  const endpoint =
+    "https://solana-mainnet.g.alchemy.com/v2/lqJNpg_IYUwHGwO6jPcrI7abZhueH9mv";
 
   const wallets = useMemo(() => [new PhantomWalletAdapter()], [network]);
 
   return (
-    <ThirdwebProvider network={network}>
-      <WalletModalProvider>
-        <LivepeerConfig client={client}>
-          <Component {...pageProps} />
-          <Toaster />
-        </LivepeerConfig>
-      </WalletModalProvider>
-    </ThirdwebProvider>
+    <ConnectionProvider endpoint={endpoint}>
+      <WalletProvider wallets={wallets} autoConnect>
+        <WalletModalProvider>
+          <LivepeerConfig client={client}>
+            <Component {...pageProps} />
+            <Toaster />
+          </LivepeerConfig>
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
   );
 }
 

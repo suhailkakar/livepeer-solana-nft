@@ -23,6 +23,7 @@ import Image from "next/image";
 import MintFromTx from "../MintFromTx";
 import Steps from "../Steps";
 import { useProgram } from "@thirdweb-dev/react/solana";
+import { useMetaplex } from "../../hooks/useMetaplex";
 
 const bundlerHttpAddress = "https://node1.bundlr.network";
 const currency = "solana";
@@ -42,11 +43,8 @@ export default function Hero() {
   const [FundLoading, setFundLoading] = useState<boolean>(false);
   const totalChunks = useRef(0);
 
-  // thirdweb
-  const { program } = useProgram(
-    "GAjMpbjrAfm8uPNwQs5HfCWECCgi7ZGXnt4UhidVRkUm",
-    "nft-collection"
-  );
+  // Metaplex
+  const metaplex = useMetaplex();
 
   // Modals
   const [showFundWallet, setShowFundWallet] = useState<boolean>(false);
@@ -66,7 +64,6 @@ export default function Hero() {
   const handleMint = async () => {
     if (!publicKey) {
       toast("Please connect your wallet to continue", {
-        icon: "🔒",
         style: {
           borderRadius: "10px",
           background: "#333",
@@ -77,7 +74,6 @@ export default function Hero() {
     }
     if (!name || !description || !file) {
       toast("Please fill all the fields", {
-        icon: "📝",
         style: {
           borderRadius: "10px",
           background: "#333",
@@ -177,14 +173,13 @@ export default function Hero() {
 
   const mint = async (id: string) => {
     toast("Preparing to Mint", {
-      icon: "🔥",
       style: {
         borderRadius: "10px",
         background: "#333",
         color: "#fff",
       },
     });
-    const metadata = {
+    const { uri, metadata } = await metaplex.nfts().uploadMetadata({
       name: name || "Untitled",
       description: description || "No description",
       image: `https://arweave.net/${id}`,
@@ -193,27 +188,36 @@ export default function Hero() {
       properties: {
         video: `ar://${id}`,
       },
-    };
-
-    const tx = await program.mint(metadata);
-
-    // EAFcmi2yF83YFGGp15EoaXAxmVAEHsYsV8j3D74qAVHa
-
-    toast("Minting NFT", {
-      icon: "🔥",
-      style: {
-        borderRadius: "10px",
-        background: "#333",
-        color: "#fff",
-      },
     });
 
-    if (tx) {
-      const { data } = await axios.get(`https://arweave.net/${id}`);
-      if (data) {
-        setLoading(false);
-        rewardRef.current?.click();
-        setShowSuccessModal(true);
+    if (uri && metadata) {
+      toast("Minting NFT", {
+        style: {
+          borderRadius: "10px",
+          background: "#333",
+          color: "#fff",
+        },
+      });
+      console.log("URI:", uri);
+      console.log("Metadata:", metadata);
+      const nft = await metaplex.nfts().create(
+        {
+          uri,
+          name,
+        },
+        {
+          commitment: "finalized",
+        }
+      );
+
+      if (nft) {
+        console.log("NFT:", nft);
+        const { data } = await axios.get(`https://arweave.net/${id}`);
+        if (data) {
+          setLoading(false);
+          rewardRef.current?.click();
+          setShowSuccessModal(true);
+        }
       }
     }
   };
@@ -221,7 +225,6 @@ export default function Hero() {
   const uploadVideo = async () => {
     if (stream) {
       toast("Uploading to Bundlr", {
-        icon: "⏳",
         style: {
           borderRadius: "10px",
           background: "#333",
@@ -277,11 +280,10 @@ export default function Hero() {
         setArweaveId(tx.data?.id);
 
         toast(`Tx: ${tx?.data?.id} `, {
-          icon: "📝",
           style: {
             borderRadius: "10px",
             background: "#333",
-            width: "35rem",
+            width: "33rem",
             maxWidth: "100%",
             color: "#fff",
           },
@@ -303,7 +305,6 @@ export default function Hero() {
         await bundlr.utils.getBundlerAddress(currency);
       } catch {
         toast("An error occured, please try again", {
-          icon: "🔒",
           style: {
             borderRadius: "10px",
             background: "#333",
@@ -318,7 +319,6 @@ export default function Hero() {
         console.log(err);
       }
       toast("Connected to Bundlr Network", {
-        icon: "🔒",
         style: {
           borderRadius: "10px",
           background: "#333",
@@ -426,7 +426,7 @@ export default function Hero() {
               : "Mint NFT"}
           </Button>
           <Button
-            disable={loading}
+            disable={!name || !description || loading}
             secondary
             onClick={() => setShowTxModal(true)}
           >
