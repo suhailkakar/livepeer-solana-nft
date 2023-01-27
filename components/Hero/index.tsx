@@ -45,6 +45,7 @@ export default function Hero() {
 
   // Metaplex
   const metaplex = useMetaplex();
+  const [signature, setSignature] = useState<string | undefined>(undefined);
 
   // Modals
   const [showFundWallet, setShowFundWallet] = useState<boolean>(false);
@@ -211,13 +212,11 @@ export default function Hero() {
       );
 
       if (nft) {
-        console.log("NFT:", nft);
-        const { data } = await axios.get(`https://arweave.net/${id}`);
-        if (data) {
-          setLoading(false);
-          rewardRef.current?.click();
-          setShowSuccessModal(true);
-        }
+        const { data } = axios.get(`https://arweave.net/${id}`);
+        setSignature(nft.response.signature);
+        setLoading(false);
+        rewardRef.current?.click();
+        setShowSuccessModal(true);
       }
     }
   };
@@ -298,8 +297,7 @@ export default function Hero() {
       const provider = new PhantomWalletAdapter();
       await provider.connect();
       const bundlr = new WebBundlr(bundlerHttpAddress, currency, provider, {
-        providerUrl:
-          "https://solana-mainnet.g.alchemy.com/v2/lqJNpg_IYUwHGwO6jPcrI7abZhueH9mv",
+        providerUrl: process.env.NEXT_PUBLIC_SOLANA_RPC_ENDPOINT,
       });
       try {
         await bundlr.utils.getBundlerAddress(currency);
@@ -425,10 +423,23 @@ export default function Hero() {
                 }`
               : "Mint NFT"}
           </Button>
+
           <Button
             disable={!name || !description || loading}
             secondary
-            onClick={() => setShowTxModal(true)}
+            onClick={() => {
+              if (!name || !description) {
+                toast("Please enter name and description", {
+                  style: {
+                    borderRadius: "10px",
+                    background: "#333",
+                    color: "#fff",
+                  },
+                });
+                return;
+              }
+              setShowTxModal(true);
+            }}
           >
             Mint from TX
           </Button>
@@ -448,7 +459,9 @@ export default function Hero() {
           onClose={() => setShowFundWallet(false)}
         />
       )}
-      {showSuccessModal && <Success name={name} arweaveId={arweaveId} />}
+      {showSuccessModal && (
+        <Success signature={signature} name={name} arweaveId={arweaveId} />
+      )}
       {showTxModal && (
         <MintFromTx
           closeModal={() => setShowTxModal(false)}

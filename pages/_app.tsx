@@ -17,9 +17,7 @@ require("@solana/wallet-adapter-react-ui/styles.css");
 function MyApp({ Component, pageProps }: AppProps) {
   const network = WalletAdapterNetwork.Mainnet;
 
-  const endpoint =
-    "https://solana-mainnet.g.alchemy.com/v2/lqJNpg_IYUwHGwO6jPcrI7abZhueH9mv";
-
+  const endpoint = process.env.NEXT_PUBLIC_SOLANA_RPC_ENDPOINT as string;
   const wallets = useMemo(() => [new PhantomWalletAdapter()], [network]);
 
   return (

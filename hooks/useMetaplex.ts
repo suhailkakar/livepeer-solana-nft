@@ -15,8 +15,7 @@ export function useMetaplex() {
       .use(walletAdapterIdentity(wallet))
       .use(
         bundlrStorage({
-          providerUrl:
-            "https://solana-mainnet.g.alchemy.com/v2/lqJNpg_IYUwHGwO6jPcrI7abZhueH9mv",
+          providerUrl: process.env.NEXT_PUBLIC_SOLANA_RPC_ENDPOINT,
           timeout: 60000,
         })
       );
